@@ -15,7 +15,10 @@ from garage.envs.wrappers.noop import Noop
 from garage.envs.wrappers.resize import Resize
 from garage.envs.wrappers.stack_frames import StackFrames
 from garage.experiment import LocalRunner, run_experiment
-from garage.exploration_strategies import EpsilonGreedyStrategy
+from garage.logger import logger
+from garage.logger import StdOutput
+from garage.logger import TensorBoardOutput
+from garage.np.exploration_strategies import EpsilonGreedyStrategy
 from garage.replay_buffer import SimpleReplayBuffer
 from garage.tf.algos import DQN
 from garage.tf.envs import TfEnv
@@ -25,10 +28,13 @@ from garage.tf.q_functions import DiscreteCNNQFunction
 
 def run_task(*_):
     """Run task."""
+    logger.add_output(TensorBoardOutput('./log/dqn_cartpole'))
+    logger.add_output(StdOutput())
     with LocalRunner() as runner:
-        max_path_length = 1
-        num_timesteps = 1000000
-
+        n_epochs = 20
+        n_epoch_cycles = 100
+        sampler_batch_size = 500
+        num_timesteps = n_epochs * n_epoch_cycles * sampler_batch_size
         env = gym.make("PongNoFrameskip-v4")
         env = Noop(env, noop_max=30)
         env = MaxAndSkip(env, skip=4)
@@ -45,7 +51,7 @@ def run_task(*_):
         replay_buffer = SimpleReplayBuffer(
             env_spec=env.spec,
             size_in_transitions=int(5e4),
-            time_horizon=max_path_length)
+            time_horizon=1)
 
         qf = DiscreteCNNQFunction(
             env_spec=env.spec,
@@ -55,33 +61,33 @@ def run_task(*_):
             dueling=False)
 
         policy = DiscreteQfDerivedPolicy(env_spec=env.spec, qf=qf)
-
         epilson_greedy_strategy = EpsilonGreedyStrategy(
             env_spec=env.spec,
             total_timesteps=num_timesteps,
             max_epsilon=1.0,
-            min_epsilon=0.01,
+            min_epsilon=0.02,
             decay_ratio=0.1)
 
-        dqn = DQN(
-            env=env,
+        algo = DQN(
+            env_spec=env.spec,
             policy=policy,
             qf=qf,
             exploration_strategy=epilson_greedy_strategy,
             replay_buffer=replay_buffer,
-            max_path_length=max_path_length,
-            num_timesteps=num_timesteps,
             qf_lr=1e-4,
             discount=0.99,
-            grad_norm_clipping=10,
+            min_buffer_size=int(1e4),
             double_q=False,
-            min_buffer_size=1e4,
-            target_network_update_freq=1000,
+            n_train_steps=500,
+            n_epoch_cycles=n_epoch_cycles,
+            target_network_update_freq=2,
             buffer_batch_size=32)
 
-        runner.setup(algo=dqn, env=env)
-        
-        runner.train()
+        runner.setup(algo, env)
+        runner.train(
+            n_epochs=n_epochs,
+            n_epoch_cycles=n_epoch_cycles,
+            batch_size=sampler_batch_size)
 
 
 run_experiment(
