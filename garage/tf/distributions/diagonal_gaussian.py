@@ -95,6 +95,7 @@ class DiagonalGaussian(Distribution):
             0.5 * self.dim * np.log(2 * np.pi)
 
     def entropy(self, dist_info):
+        import pdb; pdb.set_trace()
         log_stds = dist_info["log_std"]
         return np.sum(log_stds + np.log(np.sqrt(2 * np.pi * np.e)), axis=-1)
 

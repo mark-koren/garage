@@ -115,6 +115,7 @@ class LocalRunner:
 
         if sampler_cls is None:
             from garage.tf.algos.batch_polopt import BatchPolopt
+            # import pdb; pdb.set_trace()
             if isinstance(algo, BatchPolopt):
                 if self.policy.vectorized:
                     from garage.tf.samplers import OnPolicyVectorizedSampler
@@ -254,6 +255,7 @@ class LocalRunner:
             with logger.prefix('epoch #%d | ' % epoch):
                 for cycle in range(n_epoch_cycles):
                     paths = self.obtain_samples(itr, batch_size)
+                    import pdb; pdb.set_trace()
                     paths = self.sampler.process_samples(itr, paths)
                     last_return = self.algo.train_once(itr, paths)
                     itr += 1
