@@ -4,7 +4,7 @@ from enum import Enum, unique
 import numpy as np
 import tensorflow as tf
 
-from garage.logger import logger, tabular
+# from garage.logger import logger, tabular
 from garage.misc import special
 from garage.misc.overrides import overrides
 from garage.tf.algos.batch_polopt import BatchPolopt
@@ -42,6 +42,26 @@ class GoExplore(BatchPolopt):
                  positive_adv=False,
                  fixed_horizon=False,
                  **kwargs):
+        # env,
+        # policy,
+        # baseline,
+        # scope = None,
+        # n_itr = +500,
+        # start_itr = 0,
+        # batch_size = 5000,
+        # max_path_length = 500,
+        # discount = 0.99,
+        # gae_lambda = 1,
+        # plot = False,
+        # pause_for_plot = False,
+        # center_adv = True,
+        # positive_adv = False,
+        # store_paths = False,
+        # whole_paths = True,
+        # fixed_horizon = False,
+        # sampler_cls = None,
+        # sampler_args = None,
+        # force_batch_sampler = False,
         """
         :param env_spec: Environment specification.
         :type env_spec: EnvSpec
@@ -73,9 +93,10 @@ class GoExplore(BatchPolopt):
         self.fixed_horizon = fixed_horizon
         self.env = env
 
-        self.init_opt()
+        # self.init_opt()
 
-        # super().__init__(policy=policy, **kwargs)
+        super().__init__(env=env,
+                         policy=policy, **kwargs)
 
     @overrides
     def init_opt(self):

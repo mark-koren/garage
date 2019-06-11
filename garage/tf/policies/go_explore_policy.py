@@ -1,17 +1,18 @@
-from garage.tf.policies.base2 import StochasticPolicy2
+# from garage.tf.policies.base2 import StochasticPolicy2
+from garage.tf.policies.base import StochasticPolicy
 from garage.misc.overrides import overrides
 from garage.tf.distributions.diagonal_gaussian import DiagonalGaussian
 import tensorflow as tf
 import numpy as np
 
-class GoExplorePolicy(StochasticPolicy2):
+class GoExplorePolicy(StochasticPolicy):
     def __init__(self, env_spec):
         self.dist = DiagonalGaussian(dim=env_spec.action_space.flat_dim)
         self.log_std = np.zeros(env_spec.action_space.flat_dim)
         self.cell_num = 0
         self.stateful_num = -2
         self.cell_pool = None
-        super(GoExplorePolicy, self).__init__(env_spec=env_spec, name='policy')
+        super(GoExplorePolicy, self).__init__(env_spec=env_spec)
 
     # Should be implemented by all policies
     @overrides
