@@ -1,26 +1,29 @@
 # from garage.tf.policies.base2 import StochasticPolicy2
 from garage.tf.policies.base import StochasticPolicy
+from garage.core import Serializable
 from garage.misc.overrides import overrides
 from garage.tf.distributions.diagonal_gaussian import DiagonalGaussian
 import tensorflow as tf
 import numpy as np
 
-class GoExplorePolicy(StochasticPolicy):
+class GoExplorePolicy(StochasticPolicy,  Serializable):
     def __init__(self, env_spec):
         self.dist = DiagonalGaussian(dim=env_spec.action_space.flat_dim)
         self.log_std = np.zeros(env_spec.action_space.flat_dim)
         self.cell_num = 0
         self.stateful_num = -2
         self.cell_pool = None
+
+        Serializable.quick_init(self, locals())
         super(GoExplorePolicy, self).__init__(env_spec=env_spec)
 
     # Should be implemented by all policies
     @overrides
     def get_action(self, observation):
-        print("From get_action: ", self, ": ", self.cell_num, ", ", self.action_iter)
-        self.action_iter += 1
-        if self.action_iter <= self.cell.trajectory_length:
-            return self.cell.trajectory[self.action_iter]
+        # print("From get_action: ", self, ": ", self.cell_num, ", ", self.action_iter)
+        # self.action_iter += 1
+        # if self.action_iter <= self.cell.trajectory_length:
+        #     return self.cell.trajectory[self.action_iter]
         return self.action_space.sample(), dict(mean=self.log_std, log_std=self.log_std)
 
     @overrides
@@ -37,12 +40,13 @@ class GoExplorePolicy(StochasticPolicy):
 
     @overrides
     def reset(self, dones=None):
-        print("From reset: ", self, ": ", self.cell_num, ", ", self.stateful_num, ": ", self.cell_pool)
+        # print("From reset: ", self, ": ", self.cell_num, ", ", self.stateful_num, ": ", self.cell_pool)
         # import pdb; pdb.set_trace()
-        self.cell_num = np.random.randint(0,self.cell_pool.length)
-        self.action_iter =-1
-        self.cell = self.cell_pool.get_cell(self.cell_num)
-        print("cell pool length from ", self, ": ", len(self.cell_pool.pool))
+        # self.cell_num = np.random.randint(0,self.cell_pool.length)
+        # self.action_iter =-1
+        # self.cell = self.cell_pool.get_cell(self.cell_num)
+        # print("cell pool length from ", self, ": ", len(self.cell_pool.pool))
+        print("reset policy")
 
     @overrides
     def log_diagnostics(self, paths):

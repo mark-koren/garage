@@ -98,14 +98,20 @@ class GoExploreTfEnv(TfEnv):
         """
         # o = super().reset(**kwargs)
         print("In reset")
-        print("resetting env with pool: ", GoExploreTfEnv.var.value)
+        print("resetting env with value: ", GoExploreTfEnv.var.value)
+        # import pdb; pdb.set_trace()
+        print("resetting env with pool: ", GoExploreTfEnv.pool)
         GoExploreTfEnv.var.value = np.random.randint(0,100)
-        print("resetting env with mopdified pool: ", GoExploreTfEnv.var.value)
+        print("resetting env with mopdified value: ", GoExploreTfEnv.var.value)
+        # import pdb; pdb.set_trace
+        obs = self.env.env.reset()
+        # obs = self.env.env._get_obs()
+        print("Got obs")
         # cell = self.cell_pool.get_random_cell()
         # if cell.state is None:
         #     return super().reset(**kwargs)
         # self.env.restore_state(cell.state)
-        return self.env._get_obs()
+        return obs
     #
     def step(self, action):
         """
@@ -114,8 +120,9 @@ class GoExploreTfEnv(TfEnv):
 
         Calls step on wrapped env.
         """
-        ob, reward, done, env_info = self.env.step(action)
-        env_info['state'] = self.env.clone_state()
+        # import pdb; pdb.set_trace()
+        ob, reward, done, env_info = self.env.env.step(action)
+        env_info['state'] = self.env.env.clone_state()
         return ob, reward, done, env_info
 
     # def set_cell_pool(self, cell_pool):
@@ -129,6 +136,14 @@ class GoExploreTfEnv(TfEnv):
         print("appending env with pool: ", GoExploreTfEnv.var.value)
         GoExploreTfEnv.var.value = np.random.randint(0, 100)
         print("appending env with mopdified pool: ", GoExploreTfEnv.var.value)
+
+
+    def set_param_values(self, flattened_params, **tags):
+        # import pdb; pdb.set_trace()
+        if tags['pool'] is not None:
+            GoExploreTfEnv.pool = tags['pool']
+            print("set pool")
+        super().set_param_values(flattened_params, **tags)
 
 
 

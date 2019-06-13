@@ -33,14 +33,6 @@ class GoExplore(BatchPolopt):
                  env,
                  env_spec,
                  policy,
-                 baseline,
-                 scope=None,
-                 max_path_length=500,
-                 discount=0.99,
-                 gae_lambda=1,
-                 center_adv=True,
-                 positive_adv=False,
-                 fixed_horizon=False,
                  **kwargs):
         # env,
         # policy,
@@ -83,14 +75,6 @@ class GoExplore(BatchPolopt):
         """
         self.env_spec = env_spec
         self.policy = policy
-        self.baseline = baseline
-        self.scope = scope
-        self.max_path_length = max_path_length
-        self.discount = discount
-        self.gae_lambda = gae_lambda
-        self.center_adv = center_adv
-        self.positive_adv = positive_adv
-        self.fixed_horizon = fixed_horizon
         self.env = env
 
         # self.init_opt()
@@ -114,10 +98,11 @@ class GoExplore(BatchPolopt):
         # self.env.set_cell_pool(self.cell_pool)
         # GoExploreTfEnv.pool.append(Cell())
         self.env.append_cell(Cell())
+        self.env.set_param_values({'pool': self.env.pool})
 
 
     @overrides
-    def get_itr_snapshot(self, itr):
+    def get_itr_snapshot(self, itr, samples_data):
         """
         Returns all the data that should be saved in the snapshot for this
         iteration.
@@ -126,10 +111,12 @@ class GoExplore(BatchPolopt):
 
     @overrides
     def optimize_policy(self, itr, samples_data):
-        self.cell_pool.pool.append(Cell())
-        self.policy.set_param_values({"cell_num": -1,
-                                      "stateful_num": itr,
-                                      "cell_pool": self.cell_pool})
+        self.env.append_cell(Cell())
+        self.env.set_param_values({'pool':self.env.pool})
+        # self.policy.set_param_values({"cell_num": -1,
+        #                               "stateful_num": itr,
+        #                               "cell_pool": self.cell_pool})
+        # self.env.
 
 
         pdb.set_trace()
