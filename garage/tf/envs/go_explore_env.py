@@ -1,6 +1,7 @@
 from garage.tf.envs.base import TfEnv
 import numpy as np
 from multiprocessing import Value
+from garage.misc.overrides import overrides
 
 class CellPool():
     def __init__(self):
@@ -77,11 +78,24 @@ class Cell():
     def __hash__(self):
         return hash((self.observation))
 
+class GoExploreParameter():
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+    def get_value(self):
+        return self.value
+
+    def set_value(self, value):
+        self.value = value
+
+
 class GoExploreTfEnv(TfEnv):
     # cell_pool = CellPool()
     pool = []
     var = Value('i', 7)
     def __init__(self, env=None, env_name=""):
+        self.test_var = 6
         super().__init__(env, env_name)
         # self.cell_pool = cell_pool
 
@@ -137,9 +151,17 @@ class GoExploreTfEnv(TfEnv):
         GoExploreTfEnv.var.value = np.random.randint(0, 100)
         print("appending env with mopdified pool: ", GoExploreTfEnv.var.value)
 
+    @overrides
+    def get_params_internal(self, **tags):
+        # this lasagne function also returns all var below the passed layers
+        p_pool = GoExploreParameter("pool", GoExploreTfEnv.pool)
+        p_var = GoExploreParameter("var", GoExploreTfEnv.var)
+        p_test_var = GoExploreParameter("test_var", self.test_var)
+        return [p_pool,p_var, p_test_var]
+
 
     def set_param_values(self, flattened_params, **tags):
-        # import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
         if tags['pool'] is not None:
             GoExploreTfEnv.pool = tags['pool']
             print("set pool")

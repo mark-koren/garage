@@ -204,6 +204,7 @@ class DDPG(RLAlgorithm):
                 observation = next_observation
 
                 if self.pool.n_transitions_stored >= self.min_pool_size:
+                    import pdb;pdb.set_trace()
                     for update_itr in range(self.n_updates_per_sample):
                         # Train policy
                         batch = self.pool.sample(self.batch_size)
@@ -272,6 +273,8 @@ class DDPG(RLAlgorithm):
             qf_reg_loss, self.qf.get_params(trainable=True))
         policy_updates = self.policy_update_method(
             policy_reg_surr, self.policy.get_params(trainable=True))
+
+        import pdb; pdb.set_trace()
 
         f_train_qf = tensor_utils.compile_function(
             inputs=[yvar, obs, action],

@@ -11,7 +11,9 @@ from garage.tf.policies.go_explore_policy import GoExplorePolicy
 from garage.tf.envs.go_explore_env import CellPool, Cell
 
 def run_task(*_):
-    env = GoExploreTfEnv(env=gym.make('MontezumaRevenge-ram-v0'))
+    gym_env=gym.make('MontezumaRevenge-ram-v0')
+    import pdb; pdb.set_trace()
+    env = GoExploreTfEnv(env=gym_env)
                          # pool=CellPool())
 
     policy = GoExplorePolicy(
@@ -38,5 +40,5 @@ run_experiment(
     run_task,
     snapshot_mode='last',
     seed=1,
-    n_parallel=8,
+    n_parallel=1,
 )
