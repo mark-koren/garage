@@ -2,22 +2,26 @@ from garage.tf.envs.base import TfEnv
 import numpy as np
 from multiprocessing import Value
 from garage.misc.overrides import overrides
+import pdb
 
 class CellPool():
     def __init__(self):
         print("Creating new Cell Pool:", self)
         self.pool = []
-        self.guide = set()
+        # self.guide = set()
+        self.guide = np.array([])
         self.length = 0
         self.init_cell = Cell()
 
     def append(self, observation):
-        if observation not in self.guide:
-            self.guide.add(observation)
-            cell = Cell()
-            cell.observation = observation
-            self.pool.append(cell)
-            self.length += 1
+        # pdb.set_trace()
+        # if observation not in self.guide:
+        #     self.guide.add(observation)
+        #     cell = Cell()
+        #     cell.observation = observation
+        #     self.pool.append(cell)
+        #     self.length += 1
+        pass
 
 
     def get_cell(self, index):
@@ -28,10 +32,12 @@ class CellPool():
         return self.get_cell(index)
 
     def update(self, observation, trajectory, score, state):
-        if observation not in self.guide:
-            self.guide.add(observation)
-            cell = Cell()
-            cell.observation = observation
+        pdb.set_trace()
+        cell = Cell()
+        cell.observation = observation
+        if not np.any(np.equal(observation, self.guide).all(1)):
+            # self.guide.add(observation)
+            self.guide = np.append(self.guide, observation)
             cell.trajectory = trajectory
             cell.score = score
             cell.trajectory_length = len(trajectory)
@@ -70,7 +76,7 @@ class Cell():
     def __eq__(self, other):
         if type(other) != type(self):
             return False
-        if self.observation == other.observation:
+        if np.all(self.observation == other.observation):
             return True
         else:
             return False
@@ -79,27 +85,33 @@ class Cell():
         return hash((self.observation))
 
 class GoExploreParameter():
-    def __init__(self, name, value):
+    def __init__(self, name, value, **tags):
         self.name = name
         self.value = value
+        # pdb.set_trace()
 
-    def get_value(self):
+    def get_value(self, **kwargs):
         return self.value
 
     def set_value(self, value):
         self.value = value
 
 
+
+
 class GoExploreTfEnv(TfEnv):
     # cell_pool = CellPool()
-    pool = []
-    var = Value('i', 7)
+    # pool = []
+    # var = Value('i', 7)
     def __init__(self, env=None, env_name=""):
         self.test_var = 6
+        self.p_pool = None
+        self.params_set = False
         super().__init__(env, env_name)
         # self.cell_pool = cell_pool
 
-        print("New env, pool: ", GoExploreTfEnv.pool)
+        # print("New env, pool: ", GoExploreTfEnv.pool)
+        print("New env: ", self, " test_var: ", self.test_var)
         print("init object: ", GoExploreTfEnv)
 
 
@@ -112,12 +124,7 @@ class GoExploreTfEnv(TfEnv):
         """
         # o = super().reset(**kwargs)
         print("In reset")
-        print("resetting env with value: ", GoExploreTfEnv.var.value)
-        # import pdb; pdb.set_trace()
-        print("resetting env with pool: ", GoExploreTfEnv.pool)
-        GoExploreTfEnv.var.value = np.random.randint(0,100)
-        print("resetting env with mopdified value: ", GoExploreTfEnv.var.value)
-        # import pdb; pdb.set_trace
+        if self.p_pool is not None: print("Cell Pool Length: ", self.p_pool.get_value().length)
         obs = self.env.env.reset()
         # obs = self.env.env._get_obs()
         print("Got obs")
@@ -143,29 +150,49 @@ class GoExploreTfEnv(TfEnv):
     #     self.cell_pool = cell_pool
     #     print(self, "had cell pool set to: ", self.cell_pool)
 
-    def append_cell(self, cell):
-        GoExploreTfEnv.pool.append(cell)
-        print("Appended Cell: ", cell, " -- pool length: ", len(GoExploreTfEnv.pool))
-        print("append object: ", GoExploreTfEnv)
-        print("appending env with pool: ", GoExploreTfEnv.var.value)
-        GoExploreTfEnv.var.value = np.random.randint(0, 100)
-        print("appending env with mopdified pool: ", GoExploreTfEnv.var.value)
+    # def append_cell(self, cell):
+        # GoExploreTfEnv.pool.append(cell)
+        # print("Appended Cell: ", cell, " -- pool length: ", len(GoExploreTfEnv.pool))
+        # print("append object: ", GoExploreTfEnv)
+        # print("appending env with pool: ", GoExploreTfEnv.var.value)
+        # GoExploreTfEnv.var.value = np.random.randint(0, 100)
+        # print("appending env with mopdified pool: ", GoExploreTfEnv.var.value)
 
     @overrides
     def get_params_internal(self, **tags):
         # this lasagne function also returns all var below the passed layers
-        p_pool = GoExploreParameter("pool", GoExploreTfEnv.pool)
-        p_var = GoExploreParameter("var", GoExploreTfEnv.var)
-        p_test_var = GoExploreParameter("test_var", self.test_var)
-        return [p_pool,p_var, p_test_var]
+        if not self.params_set:
+            self.p_pool = GoExploreParameter("pool", CellPool())
+            # self.p_var = GoExploreParameter("var", GoExploreTfEnv.var)
+            # self.p_test_var = GoExploreParameter("test_var", self.test_var)
+            self.params_set = True
 
+        # if tags.pop("pool", False) == True:
+        #     return [self.p_pool]
+        # if tags.pop("test_var", False) == True:
+            # return [self.p_test_var]
+        if tags.pop("pool", False) == True:
+            return [self.p_pool]
+        return [self.p_pool]
+        # return [self.p_pool,self.p_var, self.p_test_var]
 
-    def set_param_values(self, flattened_params, **tags):
-        import pdb; pdb.set_trace()
-        if tags['pool'] is not None:
-            GoExploreTfEnv.pool = tags['pool']
-            print("set pool")
-        super().set_param_values(flattened_params, **tags)
+    @overrides
+    def set_param_values(self, param_values, **tags):
+        # pdb.set_trace()
+        # if tags['pool'] is not None:
+        #     GoExploreTfEnv.pool = tags['pool']
+        #     print("set pool")
+
+        debug = tags.pop("debug", False)
+        # param_values = unflatten_tensors(flattened_params,
+        #                                  self.get_param_shapes(**tags))
+        for param,  value in zip(
+            self.get_params(**tags),
+            param_values):
+            param.set_value(value)
+            if debug:
+                print("setting value of %s" % param.name)
+        # super().set_param_values(flattened_params, **tags)
 
 
 

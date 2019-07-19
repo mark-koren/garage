@@ -33,7 +33,6 @@ class GarageEnv(gym.Wrapper, Parameterized, Serializable, metaclass=ABCMeta):
         else:
             super().__init__(env)
         Parameterized.__init__(self)
-        import pdb; pdb.set_trace()
         Serializable.quick_init(self, locals())
 
     def close(self):

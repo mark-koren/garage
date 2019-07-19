@@ -12,7 +12,7 @@ from garage.tf.envs.go_explore_env import CellPool, Cell
 
 def run_task(*_):
     gym_env=gym.make('MontezumaRevenge-ram-v0')
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
     env = GoExploreTfEnv(env=gym_env)
                          # pool=CellPool())
 
@@ -40,5 +40,5 @@ run_experiment(
     run_task,
     snapshot_mode='last',
     seed=1,
-    n_parallel=1,
+    n_parallel=2,
 )

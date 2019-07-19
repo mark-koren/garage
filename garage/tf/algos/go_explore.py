@@ -18,8 +18,8 @@ from garage.tf.misc.tensor_utils import flatten_batch_dict
 from garage.tf.misc.tensor_utils import flatten_inputs
 from garage.tf.misc.tensor_utils import graph_inputs
 from garage.tf.optimizers import LbfgsOptimizer
-from garage.tf.envs.go_explore_env import GoExploreTfEnv
-
+from garage.tf.envs.go_explore_env import GoExploreTfEnv, CellPool,Cell
+import sys
 import pdb
 
 class GoExplore(BatchPolopt):
@@ -89,16 +89,23 @@ class GoExplore(BatchPolopt):
         include declaring all the variables and compiling functions
         """
         # pdb.set_trace()
-        # self.cell_pool = CellPool()
-        # self.cell_pool.append(Cell())
+        self.temp_index = 0
+        self.cell_pool = CellPool()
+
+        cell = Cell()
+        cell.observation = np.zeros(128)
+        self.temp_index += 1
+        self.cell_pool.append(cell)
+        self.env.set_param_values([self.cell_pool], pool=True, debug=True)
         # self.policy.set_param_values({"cell_num":-1,
         #                               "stateful_num":-1,
         #                               "cell_pool": self.cell_pool})
         # self.policy.set_cell_pool(self.cell_pool)
         # self.env.set_cell_pool(self.cell_pool)
         # GoExploreTfEnv.pool.append(Cell())
-        self.env.append_cell(Cell())
-        self.env.set_param_values({'pool': self.env.pool})
+        # self.env.append_cell(Cell())
+        # self.env.set_param_values(self.env.pool, pool=True)
+        # self.env.set_param_values([np.random.randint(0,100)], debug=True,test_var=True)
 
 
     @overrides
@@ -111,67 +118,85 @@ class GoExplore(BatchPolopt):
 
     @overrides
     def optimize_policy(self, itr, samples_data):
-        self.env.append_cell(Cell())
-        self.env.set_param_values({'pool':self.env.pool})
+        # self.env.append_cell(Cell())
+        # self.env.set_param_values({'pool':self.env.pool})
         # self.policy.set_param_values({"cell_num": -1,
         #                               "stateful_num": itr,
         #                               "cell_pool": self.cell_pool})
         # self.env.
 
-
+        # self.cell_pool = CellPool()
+        cell = Cell()
+        cell.observation = self.temp_index
+        self.temp_index += 1
+        self.cell_pool.append(cell)
+        print("Go-Explore's cell pool length: ", self.cell_pool.length)
+        self.env.set_param_values([self.cell_pool], pool=True, debug=True)
+        # self.env.set_param_values([np.random.randint(0,100)], debug=True,test_var=True)
         pdb.set_trace()
+        print("Processing Samples...")
+        for i in range(samples_data['observations'].shape[0]):
+            sys.stdout.write("\rProcessing Trajectory {0} / {1}".format(i, samples_data['observations'].shape[0]))
+            sys.stdout.flush()
+            for j in range(samples_data['observations'].shape[1]):
+
+                observation = samples_data['observations'][i,j,:]
+                trajectory = samples_data['observations'][i,0:j,:]
+                score = samples_data['rewards'][i,j]
+                state = samples_data['env_infos']['state'][i,j,:]
+                self.cell_pool.update(observation, trajectory, score, state)
 
 
-class CellPool():
-    def __init__(self):
-        print("Creating new Cell Pool:", self)
-        self.pool = []
-        self.length = 0
-
-    def append(self, cell):
-        self.pool.append(cell)
-        self.length += 1
-
-    def get_cell(self, index):
-        return self.pool[index]
-
-class Cell():
-
-    def __init__(self):
-        print("Creating new Cell:", self)
-        # Number of times this was chosen and seen
-        self.seen_times = []
-        self.chosen_times = 0
-        self.chosen_since_new = 0
-        self.score = -np.inf
-        self.action_times = 0
-
-        self.trajectory_length = -np.inf
-        self.trajectory = []
-
-    def __eq__(self, other):
-        if type(other) != type(self):
-            return False
-        # if self.trajectory
-
-    # @dataclass
-    # class Cell:
-    #     # The list of ChainLink that can take us to this place
-    #     chain: typing.List[ChainLink] = copyfield([])
-    #     seen: list = copyfield({})
-    #     score: int = -infinity
-    #
-    #     seen_times: int = 0
-    #     chosen_times: int = 0
-    #     chosen_since_new: int = 0
-    #     action_times: int = 0  # This is the number of action that led to this cell
-    #     # Length of the trajectory
-    #     trajectory_len: int = infinity
-    #     # Saved restore state. In a purely deterministic environment,
-    #     # this allows us to fast-forward to the end state instead
-    #     # of replaying.
-    #     restore: typing.Any = None
-    #     # TODO: JH: This should not refer to a Montezuma-only data-structure
-    #     exact_pos: MontezumaPosLevel = None
-    #     trajectory: list = copyfield([])
-    #     real_cell: MontezumaPosLevel = None
+# class CellPool():
+#     def __init__(self):
+#         print("Creating new Cell Pool:", self)
+#         self.pool = []
+#         self.length = 0
+#
+#     def append(self, cell):
+#         self.pool.append(cell)
+#         self.length += 1
+#
+#     def get_cell(self, index):
+#         return self.pool[index]
+#
+# class Cell():
+#
+#     def __init__(self):
+#         print("Creating new Cell:", self)
+#         # Number of times this was chosen and seen
+#         self.seen_times = []
+#         self.chosen_times = 0
+#         self.chosen_since_new = 0
+#         self.score = -np.inf
+#         self.action_times = 0
+#
+#         self.trajectory_length = -np.inf
+#         self.trajectory = []
+#
+#     def __eq__(self, other):
+#         if type(other) != type(self):
+#             return False
+#         # if self.trajectory
+#
+#     # @dataclass
+#     # class Cell:
+#     #     # The list of ChainLink that can take us to this place
+#     #     chain: typing.List[ChainLink] = copyfield([])
+#     #     seen: list = copyfield({})
+#     #     score: int = -infinity
+#     #
+#     #     seen_times: int = 0
+#     #     chosen_times: int = 0
+#     #     chosen_since_new: int = 0
+#     #     action_times: int = 0  # This is the number of action that led to this cell
+#     #     # Length of the trajectory
+#     #     trajectory_len: int = infinity
+#     #     # Saved restore state. In a purely deterministic environment,
+#     #     # this allows us to fast-forward to the end state instead
+#     #     # of replaying.
+#     #     restore: typing.Any = None
+#     #     # TODO: JH: This should not refer to a Montezuma-only data-structure
+#     #     exact_pos: MontezumaPosLevel = None
+#     #     trajectory: list = copyfield([])
+#     #     real_cell: MontezumaPosLevel = None
