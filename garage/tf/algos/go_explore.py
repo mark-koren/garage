@@ -21,6 +21,7 @@ from garage.tf.optimizers import LbfgsOptimizer
 from garage.tf.envs.go_explore_env import GoExploreTfEnv, CellPool,Cell
 import sys
 import pdb
+import time
 
 class GoExplore(BatchPolopt):
     """
@@ -92,10 +93,11 @@ class GoExplore(BatchPolopt):
         self.temp_index = 0
         self.cell_pool = CellPool()
 
-        cell = Cell()
-        cell.observation = np.zeros(128)
-        self.temp_index += 1
-        self.cell_pool.append(cell)
+        # cell = Cell()
+        # cell.observation = np.zeros(128)
+        # self.temp_index += 1
+        # self.cell_pool.append(cell)
+        # self.cell_pool.update(observation=np.zeros(128), trajectory=None, score=-np.infty, state=None)
         self.env.set_param_values([self.cell_pool], pool=True, debug=True)
         # self.policy.set_param_values({"cell_num":-1,
         #                               "stateful_num":-1,
@@ -126,14 +128,17 @@ class GoExplore(BatchPolopt):
         # self.env.
 
         # self.cell_pool = CellPool()
-        cell = Cell()
-        cell.observation = self.temp_index
-        self.temp_index += 1
-        self.cell_pool.append(cell)
-        print("Go-Explore's cell pool length: ", self.cell_pool.length)
-        self.env.set_param_values([self.cell_pool], pool=True, debug=True)
+        start = time.time()
+        new_cells = 0
+        total_cells = 0
+        # cell = Cell()
+        # cell.observation = self.temp_index
+        # self.temp_index += 1
+        # self.cell_pool.append(cell)
+        # print("Go-Explore's cell pool length: ", self.cell_pool.length)
+        # self.env.set_param_values([self.cell_pool], pool=True, debug=True)
         # self.env.set_param_values([np.random.randint(0,100)], debug=True,test_var=True)
-        pdb.set_trace()
+        # pdb.set_trace()
         print("Processing Samples...")
         for i in range(samples_data['observations'].shape[0]):
             sys.stdout.write("\rProcessing Trajectory {0} / {1}".format(i, samples_data['observations'].shape[0]))
@@ -144,7 +149,14 @@ class GoExplore(BatchPolopt):
                 trajectory = samples_data['observations'][i,0:j,:]
                 score = samples_data['rewards'][i,j]
                 state = samples_data['env_infos']['state'][i,j,:]
-                self.cell_pool.update(observation, trajectory, score, state)
+                if self.cell_pool.update(observation, trajectory, score, state):
+                    new_cells += 1
+                total_cells += 1
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+        print(new_cells, " new cells (", 100*new_cells/total_cells,"%)")
+        print(total_cells, " samples processed in ", time.time() - start, " seconds")
+        self.env.set_param_values([self.cell_pool], pool=True, debug=True)
 
 
 # class CellPool():

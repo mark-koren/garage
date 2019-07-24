@@ -46,7 +46,8 @@ class GoExplorePolicy(StochasticPolicy,  Serializable):
         # self.action_iter =-1
         # self.cell = self.cell_pool.get_cell(self.cell_num)
         # print("cell pool length from ", self, ": ", len(self.cell_pool.pool))
-        print("reset policy")
+        # print("reset policy")
+        pass
 
     @overrides
     def log_diagnostics(self, paths):
@@ -89,18 +90,18 @@ class GoExplorePolicy(StochasticPolicy,  Serializable):
         """
         return dict(mean=None, log_std=self.log_std)
 
-    def get_param_values(self):
-        print("params ", self.cell_num, ", ", self.stateful_num, ", ", self.cell_pool, " retrieved from ", self)
-        return {"cell_num": self.cell_num,
-                "stateful_num": self.stateful_num,
-                "cell_pool": self.cell_pool}
-
-    def set_param_values(self, params):
-        self.cell_num = params["cell_num"]
-        self.stateful_num = params["stateful_num"]
-        self.cell_pool = params["cell_pool"]
-        print(self, " had params set to ", self.cell_num, ", ", self.stateful_num)
-
-    def set_cell_pool(self, cell_pool):
-        self.cell_pool = cell_pool
-        print(self, "had cell pool set to: ", self.cell_pool)
+    # def get_param_values(self):
+    #     print("params ", self.cell_num, ", ", self.stateful_num, ", ", self.cell_pool, " retrieved from ", self)
+    #     return {"cell_num": self.cell_num,
+    #             "stateful_num": self.stateful_num,
+    #             "cell_pool": self.cell_pool}
+    #
+    # def set_param_values(self, params):
+    #     self.cell_num = params["cell_num"]
+    #     self.stateful_num = params["stateful_num"]
+    #     self.cell_pool = params["cell_pool"]
+    #     print(self, " had params set to ", self.cell_num, ", ", self.stateful_num)
+    #
+    # def set_cell_pool(self, cell_pool):
+    #     self.cell_pool = cell_pool
+    #     print(self, "had cell pool set to: ", self.cell_pool)

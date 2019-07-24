@@ -7,11 +7,17 @@ import pdb
 class CellPool():
     def __init__(self):
         print("Creating new Cell Pool:", self)
-        self.pool = []
         # self.guide = set()
-        self.guide = np.array([])
-        self.length = 0
         self.init_cell = Cell()
+        self.init_cell.observation = np.zeros((1,128))
+        self.init_cell.trajectory = None
+        self.init_cell.score = -np.inf
+        self.init_cell.state = None
+
+        self.pool = [self.init_cell]
+        self.guide = self.init_cell.observation
+        self.length = 1
+
 
     def append(self, observation):
         # pdb.set_trace()
@@ -32,18 +38,20 @@ class CellPool():
         return self.get_cell(index)
 
     def update(self, observation, trajectory, score, state):
-        pdb.set_trace()
+        # pdb.set_trace()
         cell = Cell()
         cell.observation = observation
+        #This tests to see if the observation is already in the matrix
         if not np.any(np.equal(observation, self.guide).all(1)):
             # self.guide.add(observation)
-            self.guide = np.append(self.guide, observation)
+            self.guide = np.append(self.guide, np.expand_dims(observation, axis=0), axis = 0)
             cell.trajectory = trajectory
             cell.score = score
             cell.trajectory_length = len(trajectory)
             cell.state = state
             self.pool.append(cell)
             self.length += 1
+            return True
         else:
             cell = Cell()
             cell.observation = observation
@@ -55,14 +63,15 @@ class CellPool():
                 cell.state = state
                 cell.chosen_since_new = 0
             cell.seen += 1
+        return False
 
 
 class Cell():
 
     def __init__(self):
-        print("Creating new Cell:", self)
+        # print("Creating new Cell:", self)
         # Number of times this was chosen and seen
-        self.seen_times = []
+        self.seen=0
         self.chosen_times = 0
         self.chosen_since_new = 0
         self.score = -np.inf
@@ -111,8 +120,8 @@ class GoExploreTfEnv(TfEnv):
         # self.cell_pool = cell_pool
 
         # print("New env, pool: ", GoExploreTfEnv.pool)
-        print("New env: ", self, " test_var: ", self.test_var)
-        print("init object: ", GoExploreTfEnv)
+        # print("New env: ", self, " test_var: ", self.test_var)
+        # print("init object: ", GoExploreTfEnv)
 
 
     def reset(self, **kwargs):
@@ -123,11 +132,11 @@ class GoExploreTfEnv(TfEnv):
         Calls reset on wrapped env.
         """
         # o = super().reset(**kwargs)
-        print("In reset")
-        if self.p_pool is not None: print("Cell Pool Length: ", self.p_pool.get_value().length)
+        # print("In reset")
+        # if self.p_pool is not None: print("Cell Pool Length: ", self.p_pool.get_value().length)
         obs = self.env.env.reset()
         # obs = self.env.env._get_obs()
-        print("Got obs")
+        # print("Got obs")
         # cell = self.cell_pool.get_random_cell()
         # if cell.state is None:
         #     return super().reset(**kwargs)

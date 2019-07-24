@@ -40,5 +40,5 @@ run_experiment(
     run_task,
     snapshot_mode='last',
     seed=1,
-    n_parallel=2,
+    n_parallel=8,
 )
