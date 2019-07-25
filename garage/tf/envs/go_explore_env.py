@@ -3,6 +3,7 @@ import numpy as np
 from multiprocessing import Value
 from garage.misc.overrides import overrides
 import pdb
+import random
 
 class CellPool():
     def __init__(self):
@@ -18,8 +19,11 @@ class CellPool():
         self.guide = self.init_cell.observation
         self.length = 1
 
+        self.d_pool = {}
+        self.d_pool[hash(self.init_cell)] = self.init_cell
+        self.length = 1
 
-    def append(self, observation):
+    def append(self, cell):
         # pdb.set_trace()
         # if observation not in self.guide:
         #     self.guide.add(observation)
@@ -27,7 +31,10 @@ class CellPool():
         #     cell.observation = observation
         #     self.pool.append(cell)
         #     self.length += 1
-        pass
+        if cell in self.d_pool:
+            self.d_pool[cell].seen += 1
+        else:
+            self.d_pool[cell] = cell
 
 
     def get_cell(self, index):
@@ -53,9 +60,36 @@ class CellPool():
             self.length += 1
             return True
         else:
+            # cell = Cell()
+            # cell.observation = observation
+            cell = self.pool[self.pool.index(cell)]
+            if score > cell.score:
+                cell.score = score
+                cell.trajectory = trajectory
+                cell.trajectory_length = len(trajectory)
+                cell.state = state
+                cell.chosen_since_new = 0
+            cell.seen += 1
+        return False
+
+    def d_update(self, observation, trajectory, score, state):
+        # pdb.set_trace()
+        #This tests to see if the observation is already in the matrix
+        obs_hash = hash(observation.tostring())
+        if not obs_hash in self.d_pool:
+            # self.guide.add(observation)
             cell = Cell()
             cell.observation = observation
-            cell = self.pool[self.pool.index(cell)]
+            # self.guide = np.append(self.guide, np.expand_dims(observation, axis=0), axis = 0)
+            cell.trajectory = trajectory
+            cell.score = score
+            cell.trajectory_length = len(trajectory)
+            cell.state = state
+            self.d_pool[obs_hash] = cell
+            self.length += 1
+            return True
+        else:
+            cell = self.d_pool[obs_hash]
             if score > cell.score:
                 cell.score = score
                 cell.trajectory = trajectory
@@ -91,7 +125,7 @@ class Cell():
             return False
 
     def __hash__(self):
-        return hash((self.observation))
+        return hash((self.observation.tostring()))
 
 class GoExploreParameter():
     def __init__(self, name, value, **tags):
@@ -134,7 +168,16 @@ class GoExploreTfEnv(TfEnv):
         # o = super().reset(**kwargs)
         # print("In reset")
         # if self.p_pool is not None: print("Cell Pool Length: ", self.p_pool.get_value().length)
-        obs = self.env.env.reset()
+
+        #TODO: This will be slow, need to implement faster random item dict (memory trade off)
+        #TODO: Also need to sample cells proportional to reward
+        cell = self.p_pool.value.d_pool[random.choice(list(self.p_pool.value.d_pool.keys()))]
+        if cell.state is not None:
+            # pdb.set_trace()
+            self.env.env.restore_state(cell.state)
+            obs = self.env.env._get_obs()
+        else:
+            obs = self.env.env.reset()
         # obs = self.env.env._get_obs()
         # print("Got obs")
         # cell = self.cell_pool.get_random_cell()

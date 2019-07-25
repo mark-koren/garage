@@ -22,6 +22,8 @@ from garage.tf.envs.go_explore_env import GoExploreTfEnv, CellPool,Cell
 import sys
 import pdb
 import time
+# import xxhash
+
 
 class GoExplore(BatchPolopt):
     """
@@ -90,7 +92,7 @@ class GoExplore(BatchPolopt):
         include declaring all the variables and compiling functions
         """
         # pdb.set_trace()
-        self.temp_index = 0
+        # self.temp_index = 0
         self.cell_pool = CellPool()
 
         # cell = Cell()
@@ -120,42 +122,29 @@ class GoExplore(BatchPolopt):
 
     @overrides
     def optimize_policy(self, itr, samples_data):
-        # self.env.append_cell(Cell())
-        # self.env.set_param_values({'pool':self.env.pool})
-        # self.policy.set_param_values({"cell_num": -1,
-        #                               "stateful_num": itr,
-        #                               "cell_pool": self.cell_pool})
-        # self.env.
 
-        # self.cell_pool = CellPool()
         start = time.time()
         new_cells = 0
         total_cells = 0
-        # cell = Cell()
-        # cell.observation = self.temp_index
-        # self.temp_index += 1
-        # self.cell_pool.append(cell)
-        # print("Go-Explore's cell pool length: ", self.cell_pool.length)
-        # self.env.set_param_values([self.cell_pool], pool=True, debug=True)
-        # self.env.set_param_values([np.random.randint(0,100)], debug=True,test_var=True)
-        # pdb.set_trace()
-        print("Processing Samples...")
+
+        print("(2) Processing Samples...")
         for i in range(samples_data['observations'].shape[0]):
             sys.stdout.write("\rProcessing Trajectory {0} / {1}".format(i, samples_data['observations'].shape[0]))
             sys.stdout.flush()
             for j in range(samples_data['observations'].shape[1]):
-
-                observation = samples_data['observations'][i,j,:]
-                trajectory = samples_data['observations'][i,0:j,:]
-                score = samples_data['rewards'][i,j]
-                state = samples_data['env_infos']['state'][i,j,:]
-                if self.cell_pool.update(observation, trajectory, score, state):
+                observation = samples_data['observations'][i, j, :]
+                trajectory = samples_data['observations'][i, 0:j, :]
+                score = samples_data['rewards'][i, j]
+                state = samples_data['env_infos']['state'][i, j, :]
+                if self.cell_pool.d_update(observation, trajectory, score, state):
                     new_cells += 1
                 total_cells += 1
         sys.stdout.write("\n")
         sys.stdout.flush()
-        print(new_cells, " new cells (", 100*new_cells/total_cells,"%)")
+        print(new_cells, " new cells (", 100 * new_cells / total_cells, "%)")
         print(total_cells, " samples processed in ", time.time() - start, " seconds")
+
+        #TODO Way too much memory having to copy the whole pool, need to just set the single cell if possible
         self.env.set_param_values([self.cell_pool], pool=True, debug=True)
 
 
