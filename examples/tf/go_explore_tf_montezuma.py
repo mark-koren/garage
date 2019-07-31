@@ -10,6 +10,10 @@ from garage.tf.envs import GoExploreTfEnv
 from garage.tf.policies.go_explore_policy import GoExplorePolicy
 from garage.tf.envs.go_explore_env import CellPool, Cell
 
+max_path_length = 2000
+n_parallel = 40
+batch_size = max_path_length * n_parallel
+
 def run_task(*_):
     gym_env=gym.make('MontezumaRevenge-ram-v0')
     # import pdb; pdb.set_trace()
@@ -21,12 +25,15 @@ def run_task(*_):
 
     baseline = LinearFeatureBaseline(env_spec=env.spec)
 
+
+
     algo = GoExplore(
         env=env,
         env_spec=env.spec,
         policy=policy,
         baseline=baseline,
-        max_path_length=200,
+        batch_size=batch_size,
+        max_path_length=max_path_length,
         discount=0.99,
         max_kl_step=0.01,        )
     algo.train()
@@ -40,5 +47,5 @@ run_experiment(
     run_task,
     snapshot_mode='last',
     seed=1,
-    n_parallel=8,
+    n_parallel=n_parallel,
 )
