@@ -171,6 +171,7 @@ class GoExploreTfEnv(TfEnv):
 
         #TODO: This will be slow, need to implement faster random item dict (memory trade off)
         #TODO: Also need to sample cells proportional to reward
+        #https://stackoverflow.com/questions/2140787/select-k-random-elements-from-a-list-whose-elements-have-weights
         cell = self.p_pool.value.d_pool[random.choice(list(self.p_pool.value.d_pool.keys()))]
         if cell.state is not None:
             # pdb.set_trace()
