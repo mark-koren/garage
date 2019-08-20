@@ -23,6 +23,7 @@ import sys
 import pdb
 import time
 # import xxhash
+from bsddb3 import db
 
 
 class GoExplore(BatchPolopt):
@@ -93,7 +94,8 @@ class GoExplore(BatchPolopt):
         """
         # pdb.set_trace()
         # self.temp_index = 0
-        self.cell_pool = CellPool()
+        self.cell_pool = CellPool(flag=db.DB_CREATE)
+        self.cell_pool.create()
 
         # cell = Cell()
         # cell.observation = np.zeros(128)
@@ -132,7 +134,7 @@ class GoExplore(BatchPolopt):
             sys.stdout.write("\rProcessing Trajectory {0} / {1}".format(i, samples_data['observations'].shape[0]))
             sys.stdout.flush()
             for j in range(samples_data['observations'].shape[1]):
-                observation = samples_data['observations'][i, j, :]
+                observation = samples_data['observations'][i, j, :] // 16
                 trajectory = samples_data['observations'][i, 0:j, :]
                 score = samples_data['rewards'][i, j]
                 state = samples_data['env_infos']['state'][i, j, :]

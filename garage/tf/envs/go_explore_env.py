@@ -4,23 +4,35 @@ from multiprocessing import Value
 from garage.misc.overrides import overrides
 import pdb
 import random
-
+import shelve
+from bsddb3 import db
 class CellPool():
-    def __init__(self):
+    def __init__(self, flag=db.DB_RDONLY):
         print("Creating new Cell Pool:", self)
         # self.guide = set()
+
+        # import pdb; pdb.set_trace()
+        # self.pool = [self.init_cell]
+        # self.guide = self.init_cell.observation
+        self.length = 1
+
+        # self.d_pool = {}
+
+        pool_DB = db.DB()
+        print('Creating Cell Pool with flag:', flag)
+        pool_DB.open('cellpool-shelf.dat', dbname=None, dbtype=db.DB_HASH, flags=flag)
+        self.d_pool = shelve.Shelf(pool_DB)
+
+    def create(self):
+
         self.init_cell = Cell()
         self.init_cell.observation = np.zeros((1,128))
         self.init_cell.trajectory = None
         self.init_cell.score = -np.inf
         self.init_cell.state = None
+        # self.d_pool = shelve.open('cellpool-shelf', flag=flag)
 
-        self.pool = [self.init_cell]
-        self.guide = self.init_cell.observation
-        self.length = 1
-
-        self.d_pool = {}
-        self.d_pool[hash(self.init_cell)] = self.init_cell
+        self.d_pool[str(hash(self.init_cell))] = self.init_cell
         self.length = 1
 
     def append(self, cell):
@@ -75,7 +87,7 @@ class CellPool():
     def d_update(self, observation, trajectory, score, state):
         # pdb.set_trace()
         #This tests to see if the observation is already in the matrix
-        obs_hash = hash(observation.tostring())
+        obs_hash = str(hash(observation.tostring()))
         if not obs_hash in self.d_pool:
             # self.guide.add(observation)
             cell = Cell()
@@ -97,6 +109,7 @@ class CellPool():
                 cell.state = state
                 cell.chosen_since_new = 0
             cell.seen += 1
+            self.d_pool[obs_hash] = cell
         return False
 
 
