@@ -6,9 +6,12 @@ import pdb
 import random
 import shelve
 from bsddb3 import db
+import pickle
+import time
+
 class CellPool():
-    def __init__(self, flag=db.DB_RDONLY):
-        print("Creating new Cell Pool:", self)
+    def __init__(self, filename = 'database.dat', flag=db.DB_RDONLY, flag2='r'):
+        # print("Creating new Cell Pool:", self)
         # self.guide = set()
 
         # import pdb; pdb.set_trace()
@@ -19,9 +22,14 @@ class CellPool():
         # self.d_pool = {}
 
         pool_DB = db.DB()
-        print('Creating Cell Pool with flag:', flag)
-        pool_DB.open('cellpool-shelf.dat', dbname=None, dbtype=db.DB_HASH, flags=flag)
-        self.d_pool = shelve.Shelf(pool_DB)
+        # print('Creating Cell Pool with flag:', flag)
+        # print(filename)
+        pool_DB.open(filename, dbname=None, dbtype=db.DB_HASH, flags=flag)
+        # pool_DB = None
+        self.d_pool = shelve.Shelf(pool_DB, protocol=pickle.HIGHEST_PROTOCOL)
+        # self.d_pool = shelve.BsdDbShelf(pool_DB)
+        # self.d_pool = shelve.open('/home/mkoren/Scratch/cellpool-shelf2', flag=flag2)
+        # self.d_pool = shelve.DbfilenameShelf('/home/mkoren/Scratch/cellpool-shelf2', flag=flag2)
 
     def create(self):
 
@@ -34,6 +42,7 @@ class CellPool():
 
         self.d_pool[str(hash(self.init_cell))] = self.init_cell
         self.length = 1
+        # import pdb; pdb.set_trace()
 
     def append(self, cell):
         # pdb.set_trace()
@@ -160,9 +169,8 @@ class GoExploreTfEnv(TfEnv):
     # pool = []
     # var = Value('i', 7)
     def __init__(self, env=None, env_name=""):
-        self.test_var = 6
-        self.p_pool = None
         self.params_set = False
+        self.db_filename = 'database.dat'
         super().__init__(env, env_name)
         # self.cell_pool = cell_pool
 
@@ -178,6 +186,59 @@ class GoExploreTfEnv(TfEnv):
 
         Calls reset on wrapped env.
         """
+
+        # print(self.p_db_filename.value)
+        # flag = db.DB_RDONLY
+        # pool_DB = db.DB()
+        # pool_DB.open(self.p_db_filename.value, dbname=None, dbtype=db.DB_HASH, flags=flag)
+        # dd_pool = shelve.Shelf(pool_DB)
+        # cell = dd_pool[random.choice(list(dd_pool.keys()))]
+        # dd_pool.close()
+        # pool_DB.close()
+        # pdb.set_trace()
+        # self.env.env.restore_state(cell.state)
+        # obs = self.env.env._get_obs()
+        try:
+            # pdb.set_trace()
+            start = time.time()
+            flag = db.DB_RDONLY
+            pool_DB = db.DB()
+            pool_DB.open(self.p_db_filename.value, dbname=None, dbtype=db.DB_HASH, flags=flag)
+            dd_pool = shelve.Shelf(pool_DB, protocol=pickle.HIGHEST_PROTOCOL)
+            cell = dd_pool[random.choice(list(dd_pool.keys()))]
+            dd_pool.close()
+            pool_DB.close()
+            print("DB Access took: ", time.time() - start, " s")
+            if cell.state is not None:
+                self.env.env.restore_state(cell.state)
+                obs = self.env.env._get_obs()
+            else:
+                obs = self.env.env.reset()
+        except db.DBBusyError:
+            print("DBBusyError")
+            obs = self.env.env.reset()
+        except db.DBLockNotGrantedError or db.DBLockDeadlockError:
+            print("db.DBLockNotGrantedError or db.DBLockDeadlockError")
+            obs = self.env.env.reset()
+        except db.DBForeignConflictError:
+            print("DBForeignConflictError")
+            obs = self.env.env.reset()
+        except db.DBAccessError:
+            print("DBAccessError")
+            obs = self.env.env.reset()
+        except db.DBPermissionsError:
+            print("DBPermissionsError")
+            obs = self.env.env.reset()
+        except db.DBNoSuchFileError:
+            print("DBNoSuchFileError")
+            obs = self.env.env.reset()
+        except db.DBError:
+            print("DBError")
+            obs = self.env.env.reset()
+        except:
+            print("Failed to get state from database")
+            obs = self.env.env.reset()
+
         # o = super().reset(**kwargs)
         # print("In reset")
         # if self.p_pool is not None: print("Cell Pool Length: ", self.p_pool.get_value().length)
@@ -185,13 +246,13 @@ class GoExploreTfEnv(TfEnv):
         #TODO: This will be slow, need to implement faster random item dict (memory trade off)
         #TODO: Also need to sample cells proportional to reward
         #https://stackoverflow.com/questions/2140787/select-k-random-elements-from-a-list-whose-elements-have-weights
-        cell = self.p_pool.value.d_pool[random.choice(list(self.p_pool.value.d_pool.keys()))]
-        if cell.state is not None:
-            # pdb.set_trace()
-            self.env.env.restore_state(cell.state)
-            obs = self.env.env._get_obs()
-        else:
-            obs = self.env.env.reset()
+        # cell = self.p_pool.value.d_pool[random.choice(list(self.p_pool.value.d_pool.keys()))]
+        # if cell.state is not None:
+        #     # pdb.set_trace()
+        #     self.env.env.restore_state(cell.state)
+        #     obs = self.env.env._get_obs()
+        # else:
+        #     obs = self.env.env.reset()
         # obs = self.env.env._get_obs()
         # print("Got obs")
         # cell = self.cell_pool.get_random_cell()
@@ -228,18 +289,24 @@ class GoExploreTfEnv(TfEnv):
     def get_params_internal(self, **tags):
         # this lasagne function also returns all var below the passed layers
         if not self.params_set:
-            self.p_pool = GoExploreParameter("pool", CellPool())
+            # self.p_pool = GoExploreParameter("pool", CellPool())
+            self.p_db_filename = GoExploreParameter("db_filename", self.db_filename)
             # self.p_var = GoExploreParameter("var", GoExploreTfEnv.var)
             # self.p_test_var = GoExploreParameter("test_var", self.test_var)
             self.params_set = True
+
+        if tags.pop("db_filename", False) == True:
+            return [self.p_db_filename]
+
+        return [self.p_db_filename]
 
         # if tags.pop("pool", False) == True:
         #     return [self.p_pool]
         # if tags.pop("test_var", False) == True:
             # return [self.p_test_var]
-        if tags.pop("pool", False) == True:
-            return [self.p_pool]
-        return [self.p_pool]
+        # if tags.pop("pool", False) == True:
+        #     return [self.p_pool]
+        # return [self.p_pool]
         # return [self.p_pool,self.p_var, self.p_test_var]
 
     @overrides

@@ -34,6 +34,7 @@ class GoExplore(BatchPolopt):
     """
 
     def __init__(self,
+                 db_filename,
                  env,
                  env_spec,
                  policy,
@@ -77,6 +78,7 @@ class GoExplore(BatchPolopt):
          advantages will be standardized before shifting.
         :return:
         """
+        self.db_filename = db_filename
         self.env_spec = env_spec
         self.policy = policy
         self.env = env
@@ -94,15 +96,18 @@ class GoExplore(BatchPolopt):
         """
         # pdb.set_trace()
         # self.temp_index = 0
-        self.cell_pool = CellPool(flag=db.DB_CREATE)
+        # pool_DB = db.DB()
+        # pool_DB.open(self.db_filename, dbname=None, dbtype=db.DB_HASH, flags=db.DB_CREATE)
+        self.cell_pool = CellPool(filename=self.db_filename, flag=db.DB_CREATE, flag2='n')
         self.cell_pool.create()
-
+        self.cell_pool.d_pool.sync()
+        # self.cell_pool.d_pool.close()
         # cell = Cell()
         # cell.observation = np.zeros(128)
         # self.temp_index += 1
         # self.cell_pool.append(cell)
         # self.cell_pool.update(observation=np.zeros(128), trajectory=None, score=-np.infty, state=None)
-        self.env.set_param_values([self.cell_pool], pool=True, debug=True)
+        self.env.set_param_values([self.db_filename], db_filename=True, debug=True)
         # self.policy.set_param_values({"cell_num":-1,
         #                               "stateful_num":-1,
         #                               "cell_pool": self.cell_pool})
@@ -128,8 +133,9 @@ class GoExplore(BatchPolopt):
         start = time.time()
         new_cells = 0
         total_cells = 0
-
+        # self.cell_pool.d_pool.open()
         print("(2) Processing Samples...")
+        # pdb.set_trace()
         for i in range(samples_data['observations'].shape[0]):
             sys.stdout.write("\rProcessing Trajectory {0} / {1}".format(i, samples_data['observations'].shape[0]))
             sys.stdout.flush()
@@ -145,9 +151,10 @@ class GoExplore(BatchPolopt):
         sys.stdout.flush()
         print(new_cells, " new cells (", 100 * new_cells / total_cells, "%)")
         print(total_cells, " samples processed in ", time.time() - start, " seconds")
-
+        self.cell_pool.d_pool.sync()
+        # self.cell_pool.d_pool.close()
         #TODO Way too much memory having to copy the whole pool, need to just set the single cell if possible
-        self.env.set_param_values([self.cell_pool], pool=True, debug=True)
+        # self.env.set_param_values([self.cell_pool], pool=True, debug=True)
 
 
 # class CellPool():

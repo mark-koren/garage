@@ -11,7 +11,7 @@ from garage.tf.policies.go_explore_policy import GoExplorePolicy
 from garage.tf.envs.go_explore_env import CellPool, Cell
 
 max_path_length = 2000
-n_parallel = 1
+n_parallel = 5
 batch_size = max_path_length * n_parallel
 
 def run_task(*_):
@@ -28,6 +28,7 @@ def run_task(*_):
 
 
     algo = GoExplore(
+        db_filename='/home/mkoren/Scratch/cellpool-shelf.dat',
         env=env,
         env_spec=env.spec,
         policy=policy,
