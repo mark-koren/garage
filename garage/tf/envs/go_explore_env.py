@@ -27,6 +27,7 @@ class CellPool():
         pool_DB.open(filename, dbname=None, dbtype=db.DB_HASH, flags=flag)
         # pool_DB = None
         self.d_pool = shelve.Shelf(pool_DB, protocol=pickle.HIGHEST_PROTOCOL)
+        self.key_list = []
         # self.d_pool = shelve.BsdDbShelf(pool_DB)
         # self.d_pool = shelve.open('/home/mkoren/Scratch/cellpool-shelf2', flag=flag2)
         # self.d_pool = shelve.DbfilenameShelf('/home/mkoren/Scratch/cellpool-shelf2', flag=flag2)
@@ -41,6 +42,7 @@ class CellPool():
         # self.d_pool = shelve.open('cellpool-shelf', flag=flag)
 
         self.d_pool[str(hash(self.init_cell))] = self.init_cell
+        self.key_list.append(str(hash(self.init_cell)))
         self.length = 1
         # import pdb; pdb.set_trace()
 
@@ -108,6 +110,7 @@ class CellPool():
             cell.state = state
             self.d_pool[obs_hash] = cell
             self.length += 1
+            self.key_list.append(obs_hash)
             return True
         else:
             cell = self.d_pool[obs_hash]
@@ -171,6 +174,7 @@ class GoExploreTfEnv(TfEnv):
     def __init__(self, env=None, env_name=""):
         self.params_set = False
         self.db_filename = 'database.dat'
+        self.key_list = []
         super().__init__(env, env_name)
         # self.cell_pool = cell_pool
 
@@ -200,15 +204,37 @@ class GoExploreTfEnv(TfEnv):
         # obs = self.env.env._get_obs()
         try:
             # pdb.set_trace()
-            start = time.time()
+            # start = time.time()
             flag = db.DB_RDONLY
             pool_DB = db.DB()
+            # tick1 = time.time()
             pool_DB.open(self.p_db_filename.value, dbname=None, dbtype=db.DB_HASH, flags=flag)
+            # tick2 = time.time()
             dd_pool = shelve.Shelf(pool_DB, protocol=pickle.HIGHEST_PROTOCOL)
-            cell = dd_pool[random.choice(list(dd_pool.keys()))]
+            # tick3 = time.time()
+            # keys = dd_pool.keys()
+            # tick4_1 = time.time()
+            # list_of_keys = list(keys)
+            # tick4_2 = time.time()
+            choice = random.choice(self.p_key_list.value)
+            # import pdb; pdb.set_trace()
+            # tick4_3 = time.time()
+            cell = dd_pool[choice]
+            # tick5 = time.time()
             dd_pool.close()
+            # tick6 = time.time()
             pool_DB.close()
-            print("DB Access took: ", time.time() - start, " s")
+            # tick7 = time.time()
+            # print("Make DB: ", 100*(tick1 - start)/(tick7 - start), " %")
+            # print("Open DB: ", 100*(tick2 - tick1) / (tick7 - start), " %")
+            # print("Open Shelf: ", 100*(tick4_2 - tick2) / (tick7 - start), " %")
+            # # print("Get all keys: ", 100*(tick4_1 - tick3) / (tick7 - start), " %")
+            # # print("Make list of all keys: ", 100 * (tick4_2 - tick4_1) / (tick7 - start), " %")
+            # print("Choose random cell: ", 100 * (tick4_3 - tick4_2) / (tick7 - start), " %")
+            # print("Get random cell: ", 100*(tick5 - tick4_3) / (tick7 - start), " %")
+            # print("Close shelf: ", 100*(tick6 - tick5) / (tick7 - start), " %")
+            # print("Close DB: ", 100*(tick7 - tick6) / (tick7 - start), " %")
+            # print("DB Access took: ", time.time() - start, " s")
             if cell.state is not None:
                 self.env.env.restore_state(cell.state)
                 obs = self.env.env._get_obs()
@@ -291,6 +317,7 @@ class GoExploreTfEnv(TfEnv):
         if not self.params_set:
             # self.p_pool = GoExploreParameter("pool", CellPool())
             self.p_db_filename = GoExploreParameter("db_filename", self.db_filename)
+            self.p_key_list = GoExploreParameter("key_list", self.key_list)
             # self.p_var = GoExploreParameter("var", GoExploreTfEnv.var)
             # self.p_test_var = GoExploreParameter("test_var", self.test_var)
             self.params_set = True
@@ -298,7 +325,10 @@ class GoExploreTfEnv(TfEnv):
         if tags.pop("db_filename", False) == True:
             return [self.p_db_filename]
 
-        return [self.p_db_filename]
+        if tags.pop("key_list", False) == True:
+            return [self.p_key_list]
+
+        return [self.p_db_filename, self.p_key_list]
 
         # if tags.pop("pool", False) == True:
         #     return [self.p_pool]
@@ -326,6 +356,12 @@ class GoExploreTfEnv(TfEnv):
             if debug:
                 print("setting value of %s" % param.name)
         # super().set_param_values(flattened_params, **tags)
+
+    @overrides
+    def get_param_values(self, **tags):
+        return [
+            param.get_value(borrow=True) for param in self.get_params(**tags)
+        ]
 
 
 

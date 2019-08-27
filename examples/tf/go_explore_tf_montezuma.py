@@ -11,7 +11,7 @@ from garage.tf.policies.go_explore_policy import GoExplorePolicy
 from garage.tf.envs.go_explore_env import CellPool, Cell
 
 max_path_length = 2000
-n_parallel = 5
+n_parallel = 40
 batch_size = max_path_length * n_parallel
 
 def run_task(*_):
@@ -36,6 +36,7 @@ def run_task(*_):
         batch_size=batch_size,
         max_path_length=max_path_length,
         discount=0.99,
+        n_itr=100,
         max_kl_step=0.01,        )
     algo.train()
 

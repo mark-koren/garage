@@ -107,7 +107,9 @@ class GoExplore(BatchPolopt):
         # self.temp_index += 1
         # self.cell_pool.append(cell)
         # self.cell_pool.update(observation=np.zeros(128), trajectory=None, score=-np.infty, state=None)
-        self.env.set_param_values([self.db_filename], db_filename=True, debug=True)
+        self.env.set_param_values([self.db_filename], db_filename=True, debug=False)
+        self.env.set_param_values([self.cell_pool.key_list], key_list=True, debug=False)
+        # pdb.set_trace()
         # self.policy.set_param_values({"cell_num":-1,
         #                               "stateful_num":-1,
         #                               "cell_pool": self.cell_pool})
@@ -155,6 +157,7 @@ class GoExplore(BatchPolopt):
         # self.cell_pool.d_pool.close()
         #TODO Way too much memory having to copy the whole pool, need to just set the single cell if possible
         # self.env.set_param_values([self.cell_pool], pool=True, debug=True)
+        self.env.set_param_values([self.cell_pool.key_list], key_list=True, debug=False)
 
 
 # class CellPool():
