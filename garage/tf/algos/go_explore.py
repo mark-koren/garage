@@ -24,6 +24,7 @@ import pdb
 import time
 # import xxhash
 from bsddb3 import db
+import os
 
 
 class GoExplore(BatchPolopt):
@@ -35,6 +36,7 @@ class GoExplore(BatchPolopt):
 
     def __init__(self,
                  db_filename,
+                 max_db_size,
                  env,
                  env_spec,
                  policy,
@@ -79,6 +81,7 @@ class GoExplore(BatchPolopt):
         :return:
         """
         self.db_filename = db_filename
+        self.max_db_size = max_db_size
         self.env_spec = env_spec
         self.policy = policy
         self.env = env
@@ -158,7 +161,9 @@ class GoExplore(BatchPolopt):
         #TODO Way too much memory having to copy the whole pool, need to just set the single cell if possible
         # self.env.set_param_values([self.cell_pool], pool=True, debug=True)
         self.env.set_param_values([self.cell_pool.key_list], key_list=True, debug=False)
-
+        if os.path.getsize(self.db_filename) /1000/1000/1000 > self.max_db_size:
+            print ('------------ERROR: MAX DB SIZE REACHED------------')
+            sys.exit()
 
 # class CellPool():
 #     def __init__(self):

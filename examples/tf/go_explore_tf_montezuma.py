@@ -10,15 +10,21 @@ from garage.tf.envs import GoExploreTfEnv
 from garage.tf.policies.go_explore_policy import GoExplorePolicy
 from garage.tf.envs.go_explore_env import CellPool, Cell
 import fire
+import os
 
 
 
 def runner(db_filename='/home/mkoren/Scratch/cellpool-shelf.dat',
+           max_db_size=150,
+           overwrite_db=True,
            n_parallel=2,
            max_path_length=2000,
            discount=0.99,
            n_itr=100,
            max_kl_step=0.01):
+
+    if overwrite_db and os.path.exists(db_filename):
+        os.remove(db_filename)
 
     batch_size = max_path_length * n_parallel
 
@@ -37,6 +43,7 @@ def runner(db_filename='/home/mkoren/Scratch/cellpool-shelf.dat',
 
         algo = GoExplore(
             db_filename=db_filename,
+            max_db_size=max_db_size,
             env=env,
             env_spec=env.spec,
             policy=policy,
