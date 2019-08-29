@@ -193,7 +193,7 @@ class GoExploreTfEnv(TfEnv):
 
         Calls reset on wrapped env.
         """
-
+        # print("reset")
         # print(self.p_db_filename.value)
         # flag = db.DB_RDONLY
         # pool_DB = db.DB()
@@ -239,10 +239,19 @@ class GoExploreTfEnv(TfEnv):
             # print("Close DB: ", 100*(tick7 - tick6) / (tick7 - start), " %")
             # print("DB Access took: ", time.time() - start, " s")
             if cell.state is not None:
-                self.env.env.restore_state(cell.state)
-                obs = self.env.env._get_obs()
+                if cell.state[0] == 0:
+                    print("DEFORMED CELL STATE")
+                    obs = self.env.env.reset()
+                else:
+                    # print("restore state: ", cell.state)
+                    self.env.env.restore_state(cell.state)
+                    # print("restored")
+                    obs = self.env.env._get_obs()
+                    # print("restore obs: ", obs)
             else:
+                print("Reset from start")
                 obs = self.env.env.reset()
+            # pdb.set_trace()
         except db.DBBusyError:
             print("DBBusyError")
             obs = self.env.env.reset()
@@ -288,7 +297,10 @@ class GoExploreTfEnv(TfEnv):
         # if cell.state is None:
         #     return super().reset(**kwargs)
         # self.env.restore_state(cell.state)
-        return self.downsample(obs)
+        # print("downsample")
+        x = self.downsample(obs)
+        # print("return from reset")
+        return x
     #
     def step(self, action):
         """
@@ -298,9 +310,16 @@ class GoExploreTfEnv(TfEnv):
         Calls step on wrapped env.
         """
         # import pdb; pdb.set_trace()
-        obs, reward, done, env_info = self.env.env.step(action)
-        env_info['state'] = self.env.env.clone_state()
-        return self.downsample(obs), reward, done, env_info
+        # print("step")
+        try:
+            obs, reward, done, env_info = self.env.env.step(action)
+            env_info['state'] = self.env.env.clone_state()
+            if env_info['state'][0] == 0:
+                print("GOT DEFORMED STATE: ", obs, reward, action, done)
+                import sys; sys.exit()
+            return self.downsample(obs), reward, done, env_info
+        except:
+            pdb.set_trace()
 
     # def set_cell_pool(self, cell_pool):
     #     self.cell_pool = cell_pool
