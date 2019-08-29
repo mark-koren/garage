@@ -9,6 +9,8 @@ from bsddb3 import db
 import pickle
 import time
 
+
+
 class CellPool():
     def __init__(self, filename = 'database.dat', flag=db.DB_RDONLY, flag2='r'):
         # print("Creating new Cell Pool:", self)
@@ -175,7 +177,7 @@ class GoExploreTfEnv(TfEnv):
         self.params_set = False
         self.db_filename = 'database.dat'
         self.key_list = []
-        self.downsampler = self.default_downsampler
+        # self.downsampler = self.default_downsampler
         super().__init__(env, env_name)
         # self.cell_pool = cell_pool
 
@@ -319,6 +321,7 @@ class GoExploreTfEnv(TfEnv):
             # self.p_pool = GoExploreParameter("pool", CellPool())
             self.p_db_filename = GoExploreParameter("db_filename", self.db_filename)
             self.p_key_list = GoExploreParameter("key_list", self.key_list)
+            # self.p_downsampler = GoExploreParameter("downsampler", self.downsampler)
             # self.p_var = GoExploreParameter("var", GoExploreTfEnv.var)
             # self.p_test_var = GoExploreParameter("test_var", self.test_var)
             self.params_set = True
@@ -329,7 +332,10 @@ class GoExploreTfEnv(TfEnv):
         if tags.pop("key_list", False) == True:
             return [self.p_key_list]
 
-        return [self.p_db_filename, self.p_key_list]
+        # if tags.pop("downsampler", False) == True:
+            # return [self.p_downsampler]
+
+        return [self.p_db_filename, self.p_key_list]#, self.p_downsampler]
 
         # if tags.pop("pool", False) == True:
         #     return [self.p_pool]
@@ -365,11 +371,30 @@ class GoExploreTfEnv(TfEnv):
         ]
 
     def downsample(self, obs):
-        return self.downsampler(obs=obs)
-
-    def default_downsampler(self, obs):
         return obs
 
+    # def downsample(self, obs):
+    #     return self.downsampler(obs=obs)
+    #
+    # def default_downsampler(self, obs):
+    #     print("DEFAULT DOWNSAMPLE")
+    #     return obs
+from skimage.measure import block_reduce
+
+class Pixel_GoExploreEnv(GoExploreTfEnv):
+    @overrides
+    def downsample(self, obs):
+        # import pdb; pdb.set_trace()
+        obs = np.dot(obs[..., :3], [0.299, 0.587, 0.114])
+        obs = block_reduce(obs, block_size=(20, 20), func=np.mean)
+        obs= obs.astype(np.uint8) // 32
+        return obs.flatten()
+
+class Ram_GoExploreEnv(GoExploreTfEnv):
+    @overrides
+    def downsample(self, obs):
+        # import pdb; pdb.set_trace()
+        return obs // 32
 
 
 # Might be able to speed up by having class of (observation, index) where hash and eq

@@ -145,6 +145,7 @@ class GoExplore(BatchPolopt):
             sys.stdout.write("\rProcessing Trajectory {0} / {1}".format(i, samples_data['observations'].shape[0]))
             sys.stdout.flush()
             for j in range(samples_data['observations'].shape[1]):
+                # pdb.set_trace()
                 observation = samples_data['observations'][i, j, :] #// 32
                 trajectory = samples_data['observations'][i, 0:j, :]
                 score = samples_data['rewards'][i, j]

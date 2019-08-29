@@ -7,24 +7,29 @@ from garage.baselines import LinearFeatureBaseline
 from garage.tf.algos.go_explore import GoExplore
 from garage.tf.envs import TfEnv
 from garage.tf.envs import GoExploreTfEnv
+from garage.tf.envs.go_explore_env import Pixel_GoExploreEnv, Ram_GoExploreEnv
 from garage.tf.policies.go_explore_policy import GoExplorePolicy
 from garage.tf.envs.go_explore_env import CellPool, Cell
 import fire
 import os
 import numpy as np
 from skimage.measure import block_reduce
-
-
-def pixel_downsampler(obs):
-    # import pdb; pdb.set_trace()
-    obs = np.dot(obs[..., :3], [0.299, 0.587, 0.114])
-    obs = block_reduce(obs, block_size=(20, 20), func=np.mean)
-    obs= obs.astype(np.uint8) // 32
-    return obs.flatten()
-
-def ram_downsampler(obs):
-    # import pdb; pdb.set_trace()
-    return obs // 32
+from garage.misc.overrides import overrides
+#
+# class Pixel_GoExploreEnv(GoExploreTfEnv):
+#     @overrides
+#     def downsample(self, obs):
+#         # import pdb; pdb.set_trace()
+#         obs = np.dot(obs[..., :3], [0.299, 0.587, 0.114])
+#         obs = block_reduce(obs, block_size=(20, 20), func=np.mean)
+#         obs= obs.astype(np.uint8) // 32
+#         return obs.flatten()
+#
+# class Ram_GoExploreEnv(GoExploreTfEnv):
+#     @overrides
+#     def downsample(self, obs):
+#         # import pdb; pdb.set_trace()
+#         return obs // 32
 
 def runner(use_ram=False,
            db_filename='/home/mkoren/Scratch/cellpool-shelf.dat',
@@ -45,16 +50,18 @@ def runner(use_ram=False,
         # gym_env=gym.make('MontezumaRevenge-ram-v0')
         if use_ram:
             gym_env = gym.make('MontezumaRevenge-ram-v0')
-            # import pdb; pdb.set_trace()
-            env = GoExploreTfEnv(env=gym_env)
+            import pdb; pdb.set_trace()
+            env = Ram_GoExploreEnv(env=gym_env)
+            # env = GoExploreTfEnv(env=gym_env)
             # pool=CellPool())
-            setattr(env, 'downsampler', ram_downsampler)
+            # setattr(env, 'downsampler', ram_downsampler)
         else:
             gym_env = gym.make('MontezumaRevenge-v0')
             # import pdb; pdb.set_trace()
-            env = GoExploreTfEnv(env=gym_env)
-                                 # pool=CellPool())
-            setattr(env, 'downsampler',pixel_downsampler)
+            env = Pixel_GoExploreEnv(env=gym_env)
+            # env = GoExploreTfEnv(env=gym_env)
+            #                      # pool=CellPool())
+            # setattr(env, 'downsampler',pixel_downsampler)
 
         policy = GoExplorePolicy(
             env_spec=env.spec)
