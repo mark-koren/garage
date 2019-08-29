@@ -175,6 +175,7 @@ class GoExploreTfEnv(TfEnv):
         self.params_set = False
         self.db_filename = 'database.dat'
         self.key_list = []
+        self.downsampler = self.default_downsampler
         super().__init__(env, env_name)
         # self.cell_pool = cell_pool
 
@@ -285,7 +286,7 @@ class GoExploreTfEnv(TfEnv):
         # if cell.state is None:
         #     return super().reset(**kwargs)
         # self.env.restore_state(cell.state)
-        return obs
+        return self.downsample(obs)
     #
     def step(self, action):
         """
@@ -295,9 +296,9 @@ class GoExploreTfEnv(TfEnv):
         Calls step on wrapped env.
         """
         # import pdb; pdb.set_trace()
-        ob, reward, done, env_info = self.env.env.step(action)
+        obs, reward, done, env_info = self.env.env.step(action)
         env_info['state'] = self.env.env.clone_state()
-        return ob, reward, done, env_info
+        return self.downsample(obs), reward, done, env_info
 
     # def set_cell_pool(self, cell_pool):
     #     self.cell_pool = cell_pool
@@ -362,6 +363,12 @@ class GoExploreTfEnv(TfEnv):
         return [
             param.get_value(borrow=True) for param in self.get_params(**tags)
         ]
+
+    def downsample(self, obs):
+        return self.downsampler(obs=obs)
+
+    def default_downsampler(self, obs):
+        return obs
 
 
 

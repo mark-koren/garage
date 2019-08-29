@@ -11,10 +11,23 @@ from garage.tf.policies.go_explore_policy import GoExplorePolicy
 from garage.tf.envs.go_explore_env import CellPool, Cell
 import fire
 import os
+import numpy as np
+from skimage.measure import block_reduce
 
 
+def pixel_downsampler(obs):
+    # import pdb; pdb.set_trace()
+    obs = np.dot(obs[..., :3], [0.299, 0.587, 0.114])
+    obs = block_reduce(obs, block_size=(20, 20), func=np.mean)
+    obs= obs.astype(np.uint8) // 32
+    return obs.flatten()
 
-def runner(db_filename='/home/mkoren/Scratch/cellpool-shelf.dat',
+def ram_downsampler(obs):
+    # import pdb; pdb.set_trace()
+    return obs // 32
+
+def runner(use_ram=False,
+           db_filename='/home/mkoren/Scratch/cellpool-shelf.dat',
            max_db_size=150,
            overwrite_db=True,
            n_parallel=2,
@@ -29,10 +42,19 @@ def runner(db_filename='/home/mkoren/Scratch/cellpool-shelf.dat',
     batch_size = max_path_length * n_parallel
 
     def run_task(*_):
-        gym_env=gym.make('MontezumaRevenge-ram-v0')
-        # import pdb; pdb.set_trace()
-        env = GoExploreTfEnv(env=gym_env)
-                             # pool=CellPool())
+        # gym_env=gym.make('MontezumaRevenge-ram-v0')
+        if use_ram:
+            gym_env = gym.make('MontezumaRevenge-ram-v0')
+            # import pdb; pdb.set_trace()
+            env = GoExploreTfEnv(env=gym_env)
+            # pool=CellPool())
+            setattr(env, 'downsampler', ram_downsampler)
+        else:
+            gym_env = gym.make('MontezumaRevenge-v0')
+            # import pdb; pdb.set_trace()
+            env = GoExploreTfEnv(env=gym_env)
+                                 # pool=CellPool())
+            setattr(env, 'downsampler',pixel_downsampler)
 
         policy = GoExplorePolicy(
             env_spec=env.spec)
