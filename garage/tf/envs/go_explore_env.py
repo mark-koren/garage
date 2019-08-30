@@ -30,6 +30,7 @@ class CellPool():
         # pool_DB = None
         self.d_pool = shelve.Shelf(pool_DB, protocol=pickle.HIGHEST_PROTOCOL)
         self.key_list = []
+        self.max_value = 0
         # self.d_pool = shelve.BsdDbShelf(pool_DB)
         # self.d_pool = shelve.open('/home/mkoren/Scratch/cellpool-shelf2', flag=flag2)
         # self.d_pool = shelve.DbfilenameShelf('/home/mkoren/Scratch/cellpool-shelf2', flag=flag2)
@@ -68,34 +69,6 @@ class CellPool():
     def get_random_cell(self):
         index = np.random.randint(0, self.length)
         return self.get_cell(index)
-
-    def update(self, observation, trajectory, score, state):
-        # pdb.set_trace()
-        cell = Cell()
-        cell.observation = observation
-        #This tests to see if the observation is already in the matrix
-        if not np.any(np.equal(observation, self.guide).all(1)):
-            # self.guide.add(observation)
-            self.guide = np.append(self.guide, np.expand_dims(observation, axis=0), axis = 0)
-            cell.trajectory = trajectory
-            cell.score = score
-            cell.trajectory_length = len(trajectory)
-            cell.state = state
-            self.pool.append(cell)
-            self.length += 1
-            return True
-        else:
-            # cell = Cell()
-            # cell.observation = observation
-            cell = self.pool[self.pool.index(cell)]
-            if score > cell.score:
-                cell.score = score
-                cell.trajectory = trajectory
-                cell.trajectory_length = len(trajectory)
-                cell.state = state
-                cell.chosen_since_new = 0
-            cell.seen += 1
-        return False
 
     def d_update(self, observation, trajectory, score, state):
         # pdb.set_trace()
@@ -151,6 +124,10 @@ class Cell():
         else:
             return False
 
+    @property
+    def fitness(self):
+        return max(1, self.score)
+
     def __hash__(self):
         return hash((self.observation.tostring()))
 
@@ -177,6 +154,7 @@ class GoExploreTfEnv(TfEnv):
         self.params_set = False
         self.db_filename = 'database.dat'
         self.key_list = []
+        self.max_value = 0
         # self.downsampler = self.default_downsampler
         super().__init__(env, env_name)
         # self.cell_pool = cell_pool
@@ -184,6 +162,16 @@ class GoExploreTfEnv(TfEnv):
         # print("New env, pool: ", GoExploreTfEnv.pool)
         # print("New env: ", self, " test_var: ", self.test_var)
         # print("init object: ", GoExploreTfEnv)
+
+    def sample(self, population):
+        attempts = 0
+        while attempts < 10000:
+            candidate = population[random.choice(self.p_key_list.value)]
+            if random.random() < (candidate.score / self.max_value):
+                return candidate
+        print("Returning Uniform Random Sample - Max Attempts Reached!")
+        return population[random.choice(self.p_key_list.value)]
+
 
 
     def reset(self, **kwargs):
@@ -219,10 +207,11 @@ class GoExploreTfEnv(TfEnv):
             # tick4_1 = time.time()
             # list_of_keys = list(keys)
             # tick4_2 = time.time()
-            choice = random.choice(self.p_key_list.value)
+            # choice = random.choice(self.p_key_list.value)
             # import pdb; pdb.set_trace()
             # tick4_3 = time.time()
-            cell = dd_pool[choice]
+            # cell = dd_pool[choice]
+            cell = self.sample(dd_pool)
             # tick5 = time.time()
             dd_pool.close()
             # tick6 = time.time()
