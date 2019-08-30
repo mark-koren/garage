@@ -8,6 +8,7 @@ import shelve
 from bsddb3 import db
 import pickle
 import time
+from cached_property import cached_property
 
 
 
@@ -42,6 +43,8 @@ class CellPool():
         self.init_cell.trajectory = None
         self.init_cell.score = -np.inf
         self.init_cell.state = None
+        self.init_cell.times_chosen = 0
+        self.init_cell.times_visited = 1
         # self.d_pool = shelve.open('cellpool-shelf', flag=flag)
 
         self.d_pool[str(hash(self.init_cell))] = self.init_cell
@@ -71,7 +74,7 @@ class CellPool():
         index = np.random.randint(0, self.length)
         return self.get_cell(index)
 
-    def d_update(self, observation, trajectory, score, state):
+    def d_update(self, observation, trajectory, score, state, chosen=0):
         # pdb.set_trace()
         #This tests to see if the observation is already in the matrix
         obs_hash = str(hash(observation.tostring()))
@@ -84,6 +87,9 @@ class CellPool():
             cell.score = score
             cell.trajectory_length = len(trajectory)
             cell.state = state
+            cell.times_visited = 1
+            cell.times_chosen = chosen
+            cell.times_chosen_since_improved = 0
             self.d_pool[obs_hash] = cell
             self.length += 1
             self.key_list.append(obs_hash)
@@ -97,8 +103,9 @@ class CellPool():
                 cell.trajectory = trajectory
                 cell.trajectory_length = len(trajectory)
                 cell.state = state
-                cell.chosen_since_new = 0
-            cell.seen += 1
+
+            cell.times_visited += 1
+            cell.times_chosen += chosen
             self.d_pool[obs_hash] = cell
             if cell.fitness > self.max_value:
                 self.max_value = cell.fitness
@@ -110,11 +117,11 @@ class Cell():
     def __init__(self):
         # print("Creating new Cell:", self)
         # Number of times this was chosen and seen
-        self.seen=0
-        self.chosen_times = 0
-        self.chosen_since_new = 0
-        self.score = -np.inf
-        self.action_times = 0
+        self._times_visited=0
+        self._times_chosen = 0
+        self._times_chosen_since_improved = 0
+        self._score = -np.inf
+        self._action_times = 0
 
         self.trajectory_length = -np.inf
         self.trajectory = []
@@ -129,9 +136,91 @@ class Cell():
         else:
             return False
 
+    def reset_cached_property(self, cached_property):
+        del self.__dict__[cached_property]
+
     @property
+    def score(self):
+        return self._score
+
+    @score.setter
+    def score(self, value):
+        self._score = value
+        self.reset_cached_property('score_weight')
+        self.reset_cached_property('fitness')
+
+    @property
+    def times_visited(self):
+        return self._times_visited
+
+    @times_visited.setter
+    def times_visited(self, value):
+        self._times_visited = value
+        self.reset_cached_property('times_visited_subscore')
+        self.reset_cached_property('count_subscores')
+        self.reset_cached_property('fitness')
+
+    @property
+    def times_chosen(self):
+        return self._times_chosen
+
+    @times_chosen.setter
+    def times_chosen(self, value):
+        self._times_chosen = value
+        self.reset_cached_property('times_chosen_subscore')
+        self.reset_cached_property('count_subscores')
+        self.reset_cached_property('fitness')
+
+    @property
+    def times_chosen_since_improved(self):
+        return self._times_chosen_since_improved
+
+    @times_chosen_since_improved.setter
+    def times_chosen_since_improved(self, value):
+        self._times_chosen_since_improved = value
+        self.reset_cached_property('times_chosen_since_improved')
+        self.reset_cached_property('count_subscores')
+        self.reset_cached_property('fitness')
+
+
+    @cached_property
     def fitness(self):
-        return max(1, self.score)
+        # return max(1, self.score)
+        return self.score_weight*(self.count_subscores + 1)
+
+    @cached_property
+    def count_subscores(self):
+        return (self.times_chosen_subscore +
+                self.times_chosen_since_improved_subscore +
+                self.times_visited_subscore)
+
+    @cached_property
+    def times_chosen_subscore(self):
+        weight = 0.1
+        power = 0.5
+        eps1 = 0.001
+        eps2 = 0.00001
+        return weight * (1 / (self.times_chosen + eps1)) ** power + eps2
+
+    @cached_property
+    def times_chosen_since_improved_subscore(self):
+        weight = 0.0
+        power = 0.5
+        eps1 = 0.001
+        eps2 = 0.00001
+        return weight * (1 / (self.times_chosen_since_improved + eps1)) ** power + eps2
+
+    @cached_property
+    def times_visited_subscore(self):
+        weight = 0.3
+        power = 0.5
+        eps1 = 0.001
+        eps2 = 0.00001
+        return weight * (1 / (self.times_chosen + eps1)) ** power + eps2
+
+    @cached_property
+    def score_weight(self):
+        return min(1e-6, 0.1**max(0.0, (100000-self.score)/10000))
 
     def __hash__(self):
         return hash((self.observation.tostring()))
@@ -180,7 +269,10 @@ class GoExploreTfEnv(TfEnv):
         print("Returning Uniform Random Sample - Max Attempts Reached!")
         return population[random.choice(self.p_key_list.value)]
 
-
+    def get_first_cell(self):
+        obs = self.env.env.reset()
+        state = self.env.env.clone_state()
+        return obs, state
 
     def reset(self, **kwargs):
         """
