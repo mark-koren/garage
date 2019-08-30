@@ -20,7 +20,7 @@ class CellPool():
         # import pdb; pdb.set_trace()
         # self.pool = [self.init_cell]
         # self.guide = self.init_cell.observation
-        self.length = 1
+        self.length = 0
 
         # self.d_pool = {}
 
