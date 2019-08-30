@@ -32,6 +32,7 @@ class CellPool():
         self.d_pool = shelve.Shelf(pool_DB, protocol=pickle.HIGHEST_PROTOCOL)
         self.key_list = []
         self.max_value = 0
+        self.max_score = 0
         # self.d_pool = shelve.BsdDbShelf(pool_DB)
         # self.d_pool = shelve.open('/home/mkoren/Scratch/cellpool-shelf2', flag=flag2)
         # self.d_pool = shelve.DbfilenameShelf('/home/mkoren/Scratch/cellpool-shelf2', flag=flag2)
@@ -95,6 +96,8 @@ class CellPool():
             self.key_list.append(obs_hash)
             if cell.fitness > self.max_value:
                 self.max_value = cell.fitness
+            if cell.score > self.max_score:
+                self.max_score = score
             return True
         else:
             cell = self.d_pool[obs_hash]
@@ -109,6 +112,8 @@ class CellPool():
             self.d_pool[obs_hash] = cell
             if cell.fitness > self.max_value:
                 self.max_value = cell.fitness
+            if cell.score > self.max_score:
+                self.max_score = score
         return False
 
 
