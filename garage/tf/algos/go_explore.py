@@ -170,7 +170,7 @@ class GoExplore(BatchPolopt):
         if os.path.getsize(self.db_filename) /1000/1000/1000 > self.max_db_size:
             print ('------------ERROR: MAX DB SIZE REACHED------------')
             sys.exit()
-        print('/n---------- Max Score: ', self.cell_pool.max_score, ' ----------------/n')
+        print('\n---------- Max Score: ', self.cell_pool.max_score, ' ----------------\n')
 
 # class CellPool():
 #     def __init__(self):

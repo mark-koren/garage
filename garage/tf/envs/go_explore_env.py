@@ -226,7 +226,8 @@ class Cell():
 
     @cached_property
     def score_weight(self):
-        return min(1e-6, 0.1**max(0.0, (100000-self.score)/10000))
+        return 1.0
+        # return min(1e-6, 0.1**max(0.0, (100000-self.score)/10000))
 
     def __hash__(self):
         return hash((self.observation.tostring()))
