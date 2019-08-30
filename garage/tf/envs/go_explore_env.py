@@ -137,7 +137,8 @@ class Cell():
             return False
 
     def reset_cached_property(self, cached_property):
-        del self.__dict__[cached_property]
+        if cached_property in self.__dict__:
+            del self.__dict__[cached_property]
 
     @property
     def score(self):

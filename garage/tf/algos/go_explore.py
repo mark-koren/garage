@@ -105,7 +105,7 @@ class GoExplore(BatchPolopt):
         # self.cell_pool.create()
         # obs = self.env.downsample(self.env.env.env.reset())
         obs, state = self.env.get_first_cell()
-        self.cell_pool.d_update(observation=obs, trajectory=None, score=0.0, state=state, chosen=1)
+        self.cell_pool.d_update(observation=obs, trajectory=[], score=0.0, state=state, chosen=1)
         self.cell_pool.d_pool.sync()
         # self.cell_pool.d_pool.close()
         # cell = Cell()
