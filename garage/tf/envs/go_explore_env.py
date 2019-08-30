@@ -47,6 +47,7 @@ class CellPool():
         self.d_pool[str(hash(self.init_cell))] = self.init_cell
         self.key_list.append(str(hash(self.init_cell)))
         self.length = 1
+        self.max_value = self.init_cell.fitness
         # import pdb; pdb.set_trace()
 
     def append(self, cell):
@@ -86,6 +87,8 @@ class CellPool():
             self.d_pool[obs_hash] = cell
             self.length += 1
             self.key_list.append(obs_hash)
+            if cell.fitness > self.max_value:
+                self.max_value = cell.fitness
             return True
         else:
             cell = self.d_pool[obs_hash]
@@ -97,6 +100,8 @@ class CellPool():
                 cell.chosen_since_new = 0
             cell.seen += 1
             self.d_pool[obs_hash] = cell
+            if cell.fitness > self.max_value:
+                self.max_value = cell.fitness
         return False
 
 
@@ -164,10 +169,13 @@ class GoExploreTfEnv(TfEnv):
         # print("init object: ", GoExploreTfEnv)
 
     def sample(self, population):
+        #Proportional sampling: Stochastic Acceptance
+        # https://arxiv.org/pdf/1109.3627.pdf
+        # https://jbn.github.io/fast_proportional_selection/
         attempts = 0
         while attempts < 10000:
             candidate = population[random.choice(self.p_key_list.value)]
-            if random.random() < (candidate.score / self.max_value):
+            if random.random() < (candidate.fitness / self.p_max_value.value):
                 return candidate
         print("Returning Uniform Random Sample - Max Attempts Reached!")
         return population[random.choice(self.p_key_list.value)]
@@ -329,6 +337,7 @@ class GoExploreTfEnv(TfEnv):
             # self.p_pool = GoExploreParameter("pool", CellPool())
             self.p_db_filename = GoExploreParameter("db_filename", self.db_filename)
             self.p_key_list = GoExploreParameter("key_list", self.key_list)
+            self.p_max_value = GoExploreParameter("max_value", self.max_value)
             # self.p_downsampler = GoExploreParameter("downsampler", self.downsampler)
             # self.p_var = GoExploreParameter("var", GoExploreTfEnv.var)
             # self.p_test_var = GoExploreParameter("test_var", self.test_var)
@@ -340,10 +349,13 @@ class GoExploreTfEnv(TfEnv):
         if tags.pop("key_list", False) == True:
             return [self.p_key_list]
 
+        if tags.pop("max_value", False) == True:
+            return [self.p_max_value]
+
         # if tags.pop("downsampler", False) == True:
             # return [self.p_downsampler]
 
-        return [self.p_db_filename, self.p_key_list]#, self.p_downsampler]
+        return [self.p_db_filename, self.p_key_list, self.p_max_value]#, self.p_downsampler]
 
         # if tags.pop("pool", False) == True:
         #     return [self.p_pool]

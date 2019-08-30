@@ -112,6 +112,7 @@ class GoExplore(BatchPolopt):
         # self.cell_pool.update(observation=np.zeros(128), trajectory=None, score=-np.infty, state=None)
         self.env.set_param_values([self.db_filename], db_filename=True, debug=False)
         self.env.set_param_values([self.cell_pool.key_list], key_list=True, debug=False)
+        self.env.set_param_values([self.cell_pool.max_value], max_value=True, debug=False)
         # pdb.set_trace()
         # self.policy.set_param_values({"cell_num":-1,
         #                               "stateful_num":-1,
@@ -162,6 +163,7 @@ class GoExplore(BatchPolopt):
         #TODO Way too much memory having to copy the whole pool, need to just set the single cell if possible
         # self.env.set_param_values([self.cell_pool], pool=True, debug=True)
         self.env.set_param_values([self.cell_pool.key_list], key_list=True, debug=False)
+        self.env.set_param_values([self.cell_pool.max_value], max_value=True, debug=False)
         if os.path.getsize(self.db_filename) /1000/1000/1000 > self.max_db_size:
             print ('------------ERROR: MAX DB SIZE REACHED------------')
             sys.exit()
